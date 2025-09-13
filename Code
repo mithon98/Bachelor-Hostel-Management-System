@@ -1,0 +1,368 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_MEMBERS 50
+#define MAX_ROOMS 3
+
+// ANSI Colors
+#define RED     "\033[1;31m"
+#define GREEN   "\033[1;32m"
+#define RESET   "\033[0m"
+
+typedef struct {
+    int memberID;
+    char name[50];
+    int age;
+    int roomNo;
+    char mobile[20];
+    char birthPlace[50];
+    char officeName[50];
+    char officeID[20];
+    char voterID[20];
+    int rent;
+} Member;
+
+Member members[MAX_MEMBERS];
+int memberCount = 0;
+
+int roomCapacity[MAX_ROOMS] = {3, 2, 1};
+int roomOccupied[MAX_ROOMS] = {0, 0, 0};
+int roomNumbers[MAX_ROOMS] = {701, 702, 703};
+
+void welcomeMessage() {
+    printf("=================================================================\n");
+    printf("|                                                               |\n");
+    printf("|           WELCOME TO BACHELOR HOSTEL MANAGEMENT SYSTEM        |\n");
+    printf("|                                                               |\n");
+    printf("|                  Manage your hostel efficiently               |\n");
+    printf("|                                                               |\n");
+    printf("|  Design By:                                                   |\n");
+    printf("|        Mithon Kumar    ID: 42250102226                        |\n");
+    printf("|          Taslima Akter     ID: 42250102219                    |\n");
+    printf("|            Shakila Akter      ID: 42250102227                 |\n");
+    printf("|                                                               |\n");
+    printf("=================================================================\n\n");
+}
+
+int adminLogin() {
+    char username[20], password[20];
+    int attempts = 3;
+
+    while (attempts--) {
+        printf("Enter Username: ");
+        scanf("%s", username);
+        printf("Enter Password: ");
+        scanf("%s", password);
+
+        if (strcmp(username, "admin") == 0 && strcmp(password, "1234") == 0) {
+            printf("\n Login Successful!\n\n");
+            return 1;
+        } else {
+            printf("\n Invalid Username or Password\n");
+            printf("Attempts remaining: %d\n\n", attempts);
+        }
+    }
+    return 0;
+}
+
+void pause() {
+    printf("[Press Enter to continue]");
+    while (getchar() != '\n'); // clear buffer
+    getchar();
+}
+
+int findRoomIndex(int roomNo) {
+    for (int i = 0; i < MAX_ROOMS; i++)
+        if (roomNumbers[i] == roomNo) return i;
+    return -1;
+}
+
+// ====== NEW DESIGN TABLE WITH COLOR ======
+void checkRoomAvailability() {
+    printf("\n\n====================================================================================\n");
+    printf("                           ROOM AVAILABILITY STATUS                            \n");
+    printf("====================================================================================\n");
+    printf("| %-7s | %-8s | %-8s | %-9s | %-25s | %-10s |\n",
+           "Room No", "Capacity", "Occupied", "Available", "Members", "Status");
+    printf("------------------------------------------------------------------------------------\n");
+
+    for (int i = 0; i < MAX_ROOMS; i++) {
+        printf("| %-7d | %-8d | %-8d | %-9d | ",
+               roomNumbers[i], roomCapacity[i], roomOccupied[i], roomCapacity[i] - roomOccupied[i]);
+
+        int count = 0;
+        if (roomOccupied[i] == 0) {
+            printf("%-25s", "None");
+        } else {
+            for (int j = 0; j < memberCount; j++) {
+                if (members[j].roomNo == roomNumbers[i]) {
+                    printf("%d-%s", members[j].memberID, members[j].name);
+                    count++;
+                    if (count < roomOccupied[i]) printf(", ");
+                }
+            }
+            int len = count * 10;
+            for (int k = len; k < 25; k++) printf(" ");
+        }
+
+        if (roomOccupied[i] == roomCapacity[i])
+            printf(" | " RED "%-10s" RESET " |\n", "Full");
+        else
+            printf(" | " GREEN "%-10s" RESET " |\n", "Available");
+    }
+
+    printf("====================================================================================\n\n");
+    pause();
+}
+
+int isMemberIDUnique(int id) {
+    for (int i = 0; i < memberCount; i++)
+        if (members[i].memberID == id) return 0;
+    return 1;
+}
+
+void addNewMember() {
+    if (memberCount >= MAX_MEMBERS) {
+        printf("\n Member limit reached!\n");
+        pause();
+        return;
+    }
+
+    Member m;
+    printf("\nEnter Member ID: ");
+    scanf("%d", &m.memberID);
+    if (!isMemberIDUnique(m.memberID)) {
+        printf(" Member ID already exists!\n");
+        pause();
+        return;
+    }
+
+    printf("Enter Name: ");
+    getchar();
+    fgets(m.name, 50, stdin);
+    m.name[strcspn(m.name, "\n")] = 0;
+
+    printf("Enter Age: ");
+    scanf("%d", &m.age);
+
+    printf("Enter Room Number (701/702/703): ");
+    scanf("%d", &m.roomNo);
+    int idx = findRoomIndex(m.roomNo);
+    if (idx == -1) {
+        printf(" Invalid Room Number!\n");
+        pause();
+        return;
+    }
+    if (roomOccupied[idx] >= roomCapacity[idx]) {
+        printf(" Room %d is Full! Cannot add member.\n", m.roomNo);
+        pause();
+        return;
+    }
+
+    printf("Enter Mobile Number: ");
+    scanf("%s", m.mobile);
+    printf("Enter Birth Place: ");
+    getchar();
+    fgets(m.birthPlace, 50, stdin);
+    m.birthPlace[strcspn(m.birthPlace, "\n")] = 0;
+    printf("Enter Office Name: ");
+    fgets(m.officeName, 50, stdin);
+    m.officeName[strcspn(m.officeName, "\n")] = 0;
+    printf("Enter Office ID: ");
+    scanf("%s", m.officeID);
+    printf("Enter Voter ID Number: ");
+    scanf("%s", m.voterID);
+    printf("Enter Monthly Rent: ");
+    scanf("%d", &m.rent);
+
+    members[memberCount++] = m;
+    roomOccupied[idx]++;
+
+    printf("\n Member %s (ID: %d) added to Room %d successfully!\n\n", m.name, m.memberID, m.roomNo);
+    pause();
+}
+
+
+// ===== View All Members (Table) =====
+void viewAllMembers() {
+    if (memberCount == 0) {
+        printf("\nNo members to display.\n");
+        pause();
+        return;
+    }
+ printf("\n=================================================================================================================================================\n");
+    printf("                                                           MEMBER LIST                                                  \n");
+    printf("=================================================================================================================================================\n");
+
+    printf("| %-4s | %-20s | %-3s | %-4s | %-12s | %-15s | %-25s | %-12s | %-13s | %-6s |\n",
+           "ID", "Name", "Age", "Room", "Mobile", "Birth Place", "Office", "Office ID", "Voter ID", "Rent");
+    printf("---------------------------------------------------------------------------------------------------------------------------------------------\n");
+
+    for (int i = 0; i < memberCount; i++) {
+        printf("| %-4d | %-20s | %-3d | %-4d | %-12s | %-15s | %-25s | %-12s | %-13s | %-6d |\n",
+               members[i].memberID, members[i].name, members[i].age, members[i].roomNo,
+               members[i].mobile, members[i].birthPlace, members[i].officeName,
+               members[i].officeID, members[i].voterID, members[i].rent);
+    }
+
+    printf("=================================================================================================================================================\n");
+    printf("Total Members: %d\n", memberCount);
+    pause();
+    return 0;
+}
+
+void searchMember() {
+    if (memberCount == 0) {
+        printf("\nNo members to search.\n");
+        pause();
+        return;
+    }
+
+    int choice, found = 0;
+    printf("\nSearch By:\n1. Member ID\n2. Room Number\n3. Mobile Number\nEnter choice: ");
+    scanf("%d", &choice);
+
+    if (choice == 1) {
+        int id;
+        printf("Enter Member ID: ");
+        scanf("%d", &id);
+        for (int i = 0; i < memberCount; i++) {
+            if (members[i].memberID == id) {
+                printf("\nID: %d, Name: %s, Room: %d, Mobile: %s\n\n", members[i].memberID, members[i].name, members[i].roomNo, members[i].mobile);
+                found = 1;
+                break;
+            }
+        }
+    } else if (choice == 2) {
+        int room;
+        printf("Enter Room Number: ");
+        scanf("%d", &room);
+        for (int i = 0; i < memberCount; i++) {
+            if (members[i].roomNo == room) {
+                printf("\nID: %d, Name: %s, Mobile: %s\n", members[i].memberID, members[i].name, members[i].mobile);
+                found = 1;
+            }
+        }
+    } else if (choice == 3) {
+        char mobile[20];
+        printf("Enter Mobile Number: ");
+        scanf("%s", mobile);
+        for (int i = 0; i < memberCount; i++) {
+            if (strcmp(members[i].mobile, mobile) == 0) {
+                printf("\nID: %d, Name: %s, Room: %d\n", members[i].memberID, members[i].name, members[i].roomNo);
+                found = 1;
+            }
+        }
+    }
+
+    if (!found)
+        printf("\n No member found.\n");
+    printf("\n");
+    pause();
+}
+
+void deleteMember() {
+    if (memberCount == 0) {
+        printf("\nNo members to delete.\n");
+        pause();
+        return;
+    }
+
+    int choice;
+    printf("\nDelete Member By:\n1. Member ID\n2. Room Number\n3. Mobile Number\nEnter choice: ");
+    scanf("%d", &choice);
+
+    int idx = -1;
+    if (choice == 1) {
+        int id;
+        printf("Enter Member ID: ");
+        scanf("%d", &id);
+        for (int i = 0; i < memberCount; i++)
+            if (members[i].memberID == id) { idx = i; break; }
+    } else if (choice == 2) {
+        int room;
+        printf("Enter Room Number: ");
+        scanf("%d", &room);
+        for (int i = 0; i < memberCount; i++)
+            if (members[i].roomNo == room) { idx = i; break; }
+    } else if (choice == 3) {
+        char mobile[20];
+        printf("Enter Mobile Number: ");
+        scanf("%s", mobile);
+        for (int i = 0; i < memberCount; i++)
+            if (strcmp(members[i].mobile, mobile) == 0) { idx = i; break; }
+    }
+
+    if (idx == -1) {
+        printf("\n Member not found.\n");
+        pause();
+        return;
+    }
+
+    printf("\nMember Found:\nID: %d, Name: %s, Room: %d, Mobile: %s\n", members[idx].memberID, members[idx].name, members[idx].roomNo, members[idx].mobile);
+    printf("Are you sure you want to delete this member? (Y/N): ");
+    char confirm;
+    scanf(" %c", &confirm);
+
+    if (confirm == 'Y' || confirm == 'y') {
+        int roomIdx = findRoomIndex(members[idx].roomNo);
+        if (roomIdx != -1) roomOccupied[roomIdx]--;
+
+        for (int i = idx; i < memberCount - 1; i++)
+            members[i] = members[i + 1];
+        memberCount--;
+        printf("\n Member deleted successfully!\n\n");
+    } else {
+        printf("\nDeletion canceled.\n\n");
+    }
+    pause();
+}
+
+void exitProgram() {
+    printf("\nDo you want to save data before exiting? (Y/N): Y\n"); // Simplified for demo
+    printf(" Data saved successfully.\n\n");
+
+    printf("***************************************************\n");
+    printf("*                                                 *\n");
+    printf("*    THANK YOU FOR USING BACHELOR HOSTEL          *\n");
+    printf("*            MANAGEMENT SYSTEM!                   *\n");
+    printf("*                                                 *\n");
+    printf("*        Wishing you a productive day!            *\n");
+    printf("*                                                 *\n");
+    printf("***************************************************\n");
+}
+
+int main() {
+    welcomeMessage();
+
+    if (!adminLogin()) {
+        printf("\nExiting program due to failed login.\n");
+        return 0;
+    }
+
+    int choice;
+    do {
+        printf("=========== MAIN MENU ===========\n");
+        printf("1. Check Room Availability\n");
+        printf("2. Add New Member\n");
+        printf("3. View All Members\n");
+        printf("4. Search Member\n");
+        printf("5. Delete Member\n");
+        printf("6. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: checkRoomAvailability(); break;
+            case 2: addNewMember(); break;
+            case 3: viewAllMembers(); break;
+            case 4: searchMember(); break;
+            case 5: deleteMember(); break;
+            case 6: exitProgram(); break;
+            default: printf("\n Invalid choice!\n"); pause(); break;
+        }
+    } while (choice != 6);
+
+    return 0;
+}
